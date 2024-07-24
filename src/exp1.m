@@ -1,8 +1,7 @@
-clear;
+close all;
+clc;
 
-% store all frequencies in a vector
-f_A = [220, 440]';
-freq = f_A * 2 .^ (0:1/12:1 -1/12);
+freq = GetFrequency();
 
 DongFangHong = [
                 freq(2, 4), 1;
@@ -19,29 +18,19 @@ DongFangHong = [
                 freq(1, 11), 2;
                 ];
 
-fs = 8e3;
+Fs = 8e3; % sampling frequency
 beat = 0.5;
 
-num_samples = 0;
-
-% calculate total number of samples
-for i = 1:size(DongFangHong, 1)
-    num_samples = num_samples + round(DongFangHong(i, 2) * fs * beat);
-end
-
-% initialize melody array
-melody = zeros(num_samples, 1);
-
-cur_index = 1;
+sub_melody = cell(1, 1);
 
 for i = 1:size(DongFangHong, 1)
-    t = linspace(0, DongFangHong(i, 2) * beat, round(DongFangHong(i, 2) * fs * beat))';
-    sub_melody = sin(2 * pi * DongFangHong(i, 1) .* t);
-    melody(cur_index:cur_index + length(sub_melody) - 1) = sub_melody;
-    cur_index = cur_index + length(sub_melody);
+    t = linspace(0, DongFangHong(i, 2) * beat, round(DongFangHong(i, 2) * Fs * beat))';
+    sub_melody{i} = sin(2 * pi * DongFangHong(i, 1) .* t);
 end
+
+melody = cat(1, sub_melody{:});
 
 % plot melody waveform and save
-plot((0:length(melody) - 1) / fs, melody);
-sound(melody, fs);
-audiowrite('exp1.wav', melody, fs);
+plot((0:length(melody) - 1) / Fs, melody);
+sound(melody, Fs);
+audiowrite('./exp1.wav', melody, Fs);
