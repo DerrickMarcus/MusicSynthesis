@@ -1,4 +1,4 @@
-% src/exp2.m
+% src/exp3.m
 
 close all;
 clc;
@@ -52,5 +52,18 @@ for i = 1:size(DongFangHong, 1)
 end
 
 plot((0:length(melody) - 1) / Fs, melody);
-sound(melody, Fs);
-audiowrite('../results/exp2.wav', melody, Fs);
+% sound(melody, Fs);
+% audiowrite('../results/exp3_1.wav', melody, Fs);
+
+% raise an octave
+sound(melody, Fs * 2);
+audiowrite('../results/exp3_1.wav', melody, Fs * 2);
+
+% lower an octave
+sound(melody, Fs / 2);
+audiowrite('../results/exp3_2.wav', melody, Fs / 2);
+
+% raise a scale
+new_melody = resample(melody, Fs, round(Fs * 2 ^ (1/12)));
+sound(new_melody, Fs);
+audiowrite('../results/exp3_3.wav', new_melody, Fs);

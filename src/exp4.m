@@ -1,4 +1,4 @@
-% src/exp2.m
+% src/exp4.m
 
 close all;
 clc;
@@ -38,7 +38,9 @@ for i = 1:size(DongFangHong, 1)
     duration = self_time + overlap_time;
 
     t = linspace(0, duration, duration * Fs)';
-    sub_melody = sin(2 * pi * DongFangHong(i, 1) .* t);
+    % add harmonics
+    harmonics = [1; 0.3; 0.2; 0.1];
+    sub_melody = sin(2 * pi * DongFangHong(i, 1) .* t * (1:length(harmonics))) * harmonics;
     sub_melody = sub_melody .* reviseEnvelope(t, duration);
 
     melody = [
@@ -53,4 +55,4 @@ end
 
 plot((0:length(melody) - 1) / Fs, melody);
 sound(melody, Fs);
-audiowrite('../results/exp2.wav', melody, Fs);
+audiowrite('../results/exp4.wav', melody, Fs);

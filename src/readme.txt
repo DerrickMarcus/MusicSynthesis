@@ -1,6 +1,6 @@
 变量名称解释：
 melody 旋律
-beat 节拍
+beat 节拍, 每个节拍的持续时间
 tun 曲调
 
 sound 函数用于四舍五入
