@@ -3,8 +3,13 @@
 close all;
 clc;
 
-function revised = reviseEnvelope(origin, duration)
-    revised = 22 * origin / duration .* exp(-8 * origin / duration);
+% adjust the envelope by expotential function
+function result = Adjust_Exp(t)
+    A = 1.5;
+    B = 8;
+    C = 1;
+    result = t .^ A .* exp(-B * t + C);
+    result = result / max(result);
 end
 
 f_A = [220; 440];
@@ -41,7 +46,7 @@ for i = 1:size(DongFangHong, 1)
     % add harmonics
     harmonics = [1; 0.3; 0.2; 0.1];
     sub_melody = sin(2 * pi * DongFangHong(i, 1) .* t * (1:length(harmonics))) * harmonics;
-    sub_melody = sub_melody .* reviseEnvelope(t, duration);
+    sub_melody = sub_melody .* Adjust_Exp(t / duration);
 
     melody = [
               melody(1:end - overlap_len);
@@ -53,7 +58,7 @@ for i = 1:size(DongFangHong, 1)
 
 end
 
-melody = melody / max(abs(melody));
+% melody = melody / max(abs(melody));
 
 sound(melody, Fs);
 audiowrite('../results/exp4.wav', melody, Fs);

@@ -3,8 +3,13 @@
 close all;
 clc;
 
-function revised = reviseEnvelope(origin, duration)
-    revised = 22 * origin / duration .* exp(-8 * origin / duration);
+% adjust the envelope by expotential function
+function result = Adjust_Exp(t)
+    A = 1.5;
+    B = 8;
+    C = 1;
+    result = t .^ A .* exp(-B * t + C);
+    result = result / max(result);
 end
 
 f_A = [220; 440];
@@ -38,8 +43,7 @@ for i = 1:size(DongFangHong, 1)
     duration = self_time + overlap_time;
 
     t = linspace(0, duration, duration * Fs)';
-    sub_melody = sin(2 * pi * DongFangHong(i, 1) .* t);
-    sub_melody = sub_melody .* reviseEnvelope(t, duration);
+    sub_melody = sin(2 * pi * DongFangHong(i, 1) .* t) .* Adjust_Exp(t / duration);
 
     melody = [
               melody(1:end - overlap_len);
