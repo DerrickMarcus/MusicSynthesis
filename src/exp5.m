@@ -41,6 +41,17 @@ OldBoy = [
 
           freq(1, 6), 2;
 
+          freq(1, 11), 1;
+          freq(1, 11), 1;
+
+          freq(1, 9), 1;
+          freq(1, 9), 1;
+
+          freq(1, 8), 1;
+          freq(1, 8), 1;
+
+          freq(1, 6), 2;
+
           freq(1, 4), 1;
           freq(1, 4), 1;
 
@@ -92,6 +103,11 @@ for i = 1:size(OldBoy, 1)
 
 end
 
-plot((0:length(melody) - 1) / Fs, melody);
 sound(melody, Fs);
 audiowrite('../results/exp5.wav', melody, Fs);
+
+plot((0:length(melody) - 1) / Fs, melody);
+title('Twinkle, Twinkle, Little Star');
+xlabel('Time (s)');
+ylabel('Amplitude');
+saveas(gcf, '../report/fig5.png');

@@ -1,7 +1,7 @@
 变量名称解释：
 melody 旋律
 beat 节拍, 每个节拍的持续时间
-tun 曲调
+tune 曲调
 
 sound 函数用于四舍五入
 size(arr, 1) 获取矩阵行数，size(arr, 2) 获取矩阵列数

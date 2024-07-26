@@ -51,7 +51,7 @@ for i = 1:size(DongFangHong, 1)
 
 end
 
-plot((0:length(melody) - 1) / Fs, melody);
+% plot((0:length(melody) - 1) / Fs, melody);
 % sound(melody, Fs);
 % audiowrite('../results/exp3_1.wav', melody, Fs);
 

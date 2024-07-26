@@ -3,8 +3,24 @@
 close all;
 clc;
 
-function revised = reviseEnvelope(origin, duration)
-    revised = 22 * origin / duration .* exp(-8 * origin / duration);
+% adjust the envelope by expotential function
+function result = Adjust_Exp(t)
+    A = 1;
+    B = 7;
+    C = 0;
+    result = t .^ A .* exp(-B * t + C);
+    result = result / max(result);
+end
+
+% adjust the envelope by linear piecewise function
+function result = Adjust_Linear(t)
+    t_begin = t(1);
+    t_len = t(end) - t(1);
+    result = ...
+        (t_begin <= t & t < t_begin + t_len / 6) .* (6 / t_len * (t - t_begin)) + ...
+        (t_begin + t_len / 6 <= t & t < t_begin + t_len / 3) .* (1 - 1.2 / t_len * (t - t_begin - t_len / 6)) + ...
+        (t_begin + t_len / 3 <= t & t < t_begin + t_len * 2/3) .* 0.8 + ...
+        (t_begin + t_len * 2/3 <= t & t <= t_begin + t_len) .* (-2.4 / t_len * (t - t_begin - t_len));
 end
 
 f_A = [220; 440];
@@ -28,7 +44,8 @@ DongFangHong = [
 Fs = 8e3;
 beat = 0.5;
 
-melody = [];
+melody_1 = [];
+melody_2 = [];
 
 overlap_len = 0;
 
@@ -38,19 +55,39 @@ for i = 1:size(DongFangHong, 1)
     duration = self_time + overlap_time;
 
     t = linspace(0, duration, duration * Fs)';
-    sub_melody = sin(2 * pi * DongFangHong(i, 1) .* t);
-    sub_melody = sub_melody .* reviseEnvelope(t, duration);
+    sub_1 = sin(2 * pi * DongFangHong(i, 1) .* t) .* Adjust_Linear(t / duration);
+    sub_2 = sin(2 * pi * DongFangHong(i, 1) .* t) .* Adjust_Exp(t / duration);
 
-    melody = [
-              melody(1:end - overlap_len);
-              melody(end - overlap_len + 1:end) + sub_melody(1:overlap_len);
-              sub_melody(overlap_len + 1:end)
-              ];
+    melody_1 = [
+                melody_1(1:end - overlap_len);
+                melody_1(end - overlap_len + 1:end) + sub_1(1:overlap_len);
+                sub_1(overlap_len + 1:end)
+                ];
+
+    melody_2 = [
+                melody_2(1:end - overlap_len);
+                melody_2(end - overlap_len + 1:end) + sub_2(1:overlap_len);
+                sub_2(overlap_len + 1:end)
+                ];
 
     overlap_len = overlap_time * Fs; % used in next loop
 
 end
 
-plot((0:length(melody) - 1) / Fs, melody);
-sound(melody, Fs);
-audiowrite('../results/exp2.wav', melody, Fs);
+sound(melody_1, Fs);
+audiowrite('../results/exp2_1.wav', melody_1, Fs);
+
+plot((0:length(melody_1) - 1) / Fs, melody_1);
+title('Dong Fang Hong');
+xlabel('Time (s)');
+ylabel('Amplitude');
+saveas(gcf, '../report/fig2_1.png');
+
+sound(melody_2, Fs);
+audiowrite('../results/exp2_2.wav', melody_2, Fs);
+
+plot((0:length(melody_2) - 1) / Fs, melody_2);
+title('Dong Fang Hong');
+xlabel('Time (s)');
+ylabel('Amplitude');
+saveas(gcf, '../report/fig2_2.png');

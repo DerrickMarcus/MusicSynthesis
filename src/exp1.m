@@ -33,7 +33,11 @@ end
 
 melody = cat(1, sub_melody{:});
 
-% plot melody waveform and save
-plot((0:length(melody) - 1) / Fs, melody);
 sound(melody, Fs);
 audiowrite('../results/exp1.wav', melody, Fs);
+
+plot((0:length(melody) - 1) / Fs, melody);
+title('Dong Fang Hong');
+xlabel('Time (s)');
+ylabel('Amplitude');
+saveas(gcf, '../report/fig1.png');

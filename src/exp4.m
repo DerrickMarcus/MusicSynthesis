@@ -53,6 +53,13 @@ for i = 1:size(DongFangHong, 1)
 
 end
 
-plot((0:length(melody) - 1) / Fs, melody);
+melody = melody / max(abs(melody));
+
 sound(melody, Fs);
 audiowrite('../results/exp4.wav', melody, Fs);
+
+plot((0:length(melody) - 1) / Fs, melody);
+title('Dong Fang Hong');
+xlabel('Time (s)');
+ylabel('Amplitude');
+saveas(gcf, '../report/fig4.png');
