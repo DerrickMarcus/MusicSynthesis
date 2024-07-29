@@ -3,15 +3,6 @@
 close all;
 clc;
 
-% adjust the envelope by expotential function
-function result = Adjust_Exp(t)
-    A = 1.5;
-    B = 8;
-    C = 1;
-    result = t .^ A .* exp(-B * t + C);
-    result = result / max(result);
-end
-
 f_A = [220; 440];
 freq = f_A * 2 .^ (0:1/12:1 -1/12);
 

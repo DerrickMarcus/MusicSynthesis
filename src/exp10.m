@@ -1,7 +1,32 @@
-% src/exp4.m
+% src/exp10.m
 
 close all;
 clc;
+
+% extract harmonics
+load("./resources/Guitar.MAT");
+Fs = 8e3;
+
+rw_len = length(realwave);
+re_wave = resample(realwave, 10, 1);
+wave_proc = zeros(rw_len, 1);
+
+for i = 1:10
+    wave_proc = wave_proc + re_wave((i - 1) * rw_len + 1:i * rw_len);
+end
+
+wave_proc = wave_proc / 10;
+wave_proc = repmat(wave_proc, [10, 1]);
+wave_proc = resample(wave_proc, 1, 10);
+
+wave_proc = repmat(wave_proc, [100, 1]);
+spect = fft(wave_proc);
+plot(abs(spect));
+
+[peaks, ~] = findpeaks(abs(spect), 'MinPeakHeight', 0.01 * max(abs(spect)));
+
+harmonics = peaks(1:end / 2);
+harmonics = harmonics / harmonics(1);
 
 f_A = [220; 440];
 freq = f_A * 2 .^ (0:1/12:1 -1/12);
@@ -21,7 +46,6 @@ DongFangHong = [
                 freq(1, 11), 2;
                 ];
 
-Fs = 8e3;
 beat = 0.5;
 
 melody = [];
@@ -35,7 +59,6 @@ for i = 1:size(DongFangHong, 1)
 
     t = linspace(0, duration, duration * Fs)';
     % add harmonics
-    harmonics = [1; 0.3; 0.2; 0.1];
     sub_melody = sin(2 * pi * DongFangHong(i, 1) .* t * (1:length(harmonics))) * harmonics;
     sub_melody = sub_melody .* Adjust_Exp(t / duration);
 
@@ -49,13 +72,13 @@ for i = 1:size(DongFangHong, 1)
 
 end
 
-% melody = melody / max(abs(melody));
+melody = melody / max(abs(melody));
 
 sound(melody, Fs);
-audiowrite('../results/exp4.wav', melody, Fs);
+audiowrite('../results/exp10.wav', melody, Fs);
 
 plot((0:length(melody) - 1) / Fs, melody);
-title('Dong Fang Hong');
+title('Dong Fang Hong (guitar)');
 xlabel('Time (s)');
 ylabel('Amplitude');
-saveas(gcf, '../report/fig4.png');
+saveas(gcf, '../report/fig10.png');
