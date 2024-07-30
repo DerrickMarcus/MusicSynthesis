@@ -5,7 +5,7 @@ clc;
 
 % load("./resources/Guitar.MAT");
 
-[guitar, Fs] = audioread("./resources/fmt.wav");
+[guitar, Fs] = audioread('./resources/fmt.wav');
 sound(guitar, Fs);
 
 t = linspace(0, length(guitar) / Fs, length(guitar));

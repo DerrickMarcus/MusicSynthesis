@@ -4,7 +4,7 @@ close all;
 clc;
 
 % extract harmonics
-load("./resources/Guitar.MAT");
+load('./resources/Guitar.MAT');
 Fs = 8e3;
 
 rw_len = length(realwave);

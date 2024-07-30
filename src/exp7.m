@@ -3,7 +3,7 @@
 close all;
 clc;
 
-load("./resources/Guitar.MAT");
+load('./resources/Guitar.MAT');
 
 Fs = 8e3;
 
