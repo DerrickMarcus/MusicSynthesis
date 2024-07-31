@@ -5,7 +5,9 @@ clc;
 
 [guitar, Fs] = audioread('./resources/fmt.wav'); % Fs=8000
 
+%
 % analyse the beat
+%
 figure;
 
 subplot(6, 1, 1);
@@ -27,72 +29,95 @@ dif = dif .* (dif > 0);
 subplot(6, 1, 5);
 plot((1:length(dif)) / Fs, dif);
 
-[peaks, locs] = findpeaks(dif, 'MinPeakHeight', 0.01 * max(abs(dif)), 'MinPeakDistance', Fs / 5);
-locs = locs / Fs;
+[peaks, locs] = findpeaks(dif, ...
+    'MinPeakHeight', 0.015 * max(abs(dif)), ...
+    'MinPeakDistance', Fs * 0.15);
 hold on;
-plot(locs, peaks, 'ro');
+plot(locs / Fs, peaks, 'ro');
+
+locs = locs - Fs / 20; % adjust the location of the beat
 
 subplot(6, 1, 6);
 plot((1:length(guitar)) / Fs, guitar);
 hold on;
-plot(locs, zeros(size(locs)), 'ro');
 
-saveas(gcf, "../report/fig9_1.png");
+for i = 1:length(locs)
+    line([locs(i), locs(i)] / Fs, ylim, 'Color', 'red', 'LineStyle', '-');
+end
 
+saveas(gcf, '../report/fig9_1.png');
+
+%
 % analyse the tunes
-wave_gt = repmat(guitar, [100, 1]);
-spect_gt = abs(fft(wave_gt));
+%
+std_freq = 220 * 2 .^ (-1:1/12:2); % standard frequencies
 
-figure;
+harmonics = cell(1, length(std_freq));
 
-subplot(2, 1, 1);
-plot((0:length(spect_gt) - 1) * Fs / length(spect_gt), spect_gt);
-title('Frequency Spectrum of Guitar');
-xlabel('Frequency (Hz)');
-ylabel('Amplitude');
+for i = 1:length(locs)
 
-f_A = 220;
-std_freq = f_A * 2 .^ (-1:1/12:2 -1/12); % standard frequencies
+    if i == length(locs)
+        wave_gt = guitar(locs(i):end);
+    else
+        wave_gt = guitar(locs(i):locs(i + 1));
+    end
 
-[peak, loc] = max(spect_gt);
-candidate = (1:loc);
-candidate = candidate(spect_gt(1:loc) > peak / 4);
+    wave_gt = repmat(wave_gt, [100, 1]);
+    spect_gt = abs(fft(wave_gt));
 
-for i = 1:length(candidate)
-    k = loc / candidate(i);
+    [sp_peak, sp_loc] = max(spect_gt);
+    candidate = (1:sp_loc);
+    candidate = candidate(spect_gt(1:sp_loc) > sp_peak / 4);
 
-    if k < 5 && abs(k / round(k) - 1) < 0.005
-        result = candidate(i);
-        break;
+    for j = 1:length(candidate)
+        k = sp_loc / candidate(j);
+
+        if k < 5 && abs(k / round(k) - 1) < 0.05
+            result = candidate(j);
+            break;
+        end
+
+    end
+
+    fund_freq = (result - 1) * Fs / length(spect_gt);
+    [~, idx] = min(abs(std_freq - fund_freq));
+    fund_freq = std_freq(idx);
+
+    temp_ampls = zeros(1, floor(Fs / 2 / fund_freq));
+
+    for j = 1:floor(Fs / 2 / fund_freq)
+        range = round(result * j * (1 - 0.02)):round(result * j * (1 + 0.02));
+        temp_ampls(j) = max(spect_gt(range));
+    end
+
+    temp_ampls = temp_ampls / temp_ampls(1);
+
+    if isempty(harmonics{idx})
+        harmonics{idx} = temp_ampls;
+    else
+        harmonics{idx} = (harmonics{idx} + temp_ampls) / 2;
     end
 
 end
 
-fund_freq = (result - 1) * Fs / length(spect_gt);
-[~, idx] = min(abs(std_freq - fund_freq));
-fund_freq = std_freq(idx);
+for i = 1:length(std_freq)
 
-harmonics = zeros(1, floor(Fs / 2 / fund_freq));
-ampls = zeros(1, floor(Fs / 2 / fund_freq));
-locs = zeros(1, floor(Fs / 2 / fund_freq));
+    if isempty(harmonics{i})
 
-for i = 1:floor(Fs / 2 / fund_freq)
-    range = round(result * i * (1 - 0.02)):round(result * i * (1 + 0.02));
-    [ampls(i), locs(i)] = max(spect_gt(range));
-    locs(i) = locs(i) + range(1) - 1;
-    harmonics(i) = max(spect_gt(range));
+        for j = 1:max(i - 1, length(std_freq) - i)
+
+            if (i > j && ~isempty(harmonics{i - j}))
+                harmonics(i) = harmonics(i - j);
+                break;
+            elseif (i + j <= length(std_freq) && ~isempty(harmonics{i + j}))
+                harmonics(i) = harmonics(i + j);
+                break;
+            end
+
+        end
+
+    end
+
 end
 
-harmonics = harmonics / harmonics(1);
-
-subplot(2, 1, 2);
-plot((0:length(spect_gt) / 2 - 1) * Fs / length(spect_gt), spect_gt(1:end / 2));
-hold on;
-plot(locs * Fs / length(spect_gt), ampls, 'ro');
-title('Frequency Spectrum of Guitar (0-4KHz)');
-xlabel('Frequency (Hz)');
-ylabel('Amplitude');
-
-saveas(gcf, '../report/fig9_2.png');
-
-save('./harmonics_exp9.mat', 'harmonics');
+save('./harmonics_exp9.mat', 'harmonics', 'std_freq');

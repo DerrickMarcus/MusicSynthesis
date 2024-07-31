@@ -5,8 +5,7 @@ clc;
 
 Fs = 8e3;
 
-harmonics = load('./harmonics_exp9.mat').harmonics';
-disp(harmonics);
+load('./harmonics_exp9.mat');
 
 f_A = [220; 440];
 freq = f_A * 2 .^ (0:1/12:1 -1/12);
@@ -38,8 +37,9 @@ for i = 1:size(DongFangHong, 1)
     duration = self_time + overlap_time;
 
     t = linspace(0, duration, duration * Fs)';
-    % add harmonics
-    sub_melody = sin(2 * pi * DongFangHong(i, 1) .* t * (1:length(harmonics))) * harmonics;
+
+    harmo = harmonics{abs(std_freq - DongFangHong(i, 1)) < 1e-2};
+    sub_melody = sin(2 * pi * DongFangHong(i, 1) * t * (1:length(harmo))) * harmo';
     sub_melody = sub_melody .* Adjust_Exp(t / duration);
 
     melody = [
