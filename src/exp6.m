@@ -8,10 +8,8 @@ clc;
 [guitar, Fs] = audioread('./resources/fmt.wav');
 sound(guitar, Fs);
 
-t = linspace(0, length(guitar) / Fs, length(guitar));
-
 figure;
-plot(t, guitar);
+plot((0:length(guitar) - 1) / Fs, guitar);
 title('guitar');
 xlabel('Time (s)');
 ylabel('Amplitude');
