@@ -38,7 +38,8 @@ for i = 1:size(DongFangHong, 1)
 
     t = linspace(0, duration, duration * Fs)';
 
-    harmo = harmonics{abs(std_freq - DongFangHong(i, 1)) < 1e-2};
+    [~, idx] = min(abs(std_freq - DongFangHong(i, 1)));
+    harmo = harmonics{idx};
     sub_melody = sin(2 * pi * DongFangHong(i, 1) * t * (1:length(harmo))) * harmo';
     sub_melody = sub_melody .* Adjust_Exp(t / duration);
 

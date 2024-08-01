@@ -72,7 +72,7 @@ for i = 1:length(locs)
     for j = 1:length(candidate)
         k = sp_loc / candidate(j);
 
-        if k < 5 && abs(k / round(k) - 1) < 0.05
+        if k < 5 && 0.995 < k / round(k) && k / round(k) < 1.005
             result = candidate(j);
             break;
         end
@@ -100,20 +100,51 @@ for i = 1:length(locs)
 
 end
 
+% for i = 1:length(std_freq)
+
+%     if isempty(harmonics{i})
+
+%         for j = 1:max(i - 1, length(std_freq) - i)
+
+%             if (i > j && ~isempty(harmonics{i - j}))
+%                 harmonics(i) = harmonics(i - j);
+%                 break;
+%             elseif (i + j <= length(std_freq) && ~isempty(harmonics{i + j}))
+%                 harmonics(i) = harmonics(i + j);
+%                 break;
+%             end
+
+%         end
+
+%     end
+
+% end
+
 for i = 1:length(std_freq)
 
     if isempty(harmonics{i})
+        left_idx = i - 1;
 
-        for j = 1:max(i - 1, length(std_freq) - i)
+        while left_idx > 0 && isempty(harmonics{left_idx})
+            left_idx = left_idx - 1;
+        end
 
-            if (i > j && ~isempty(harmonics{i - j}))
-                harmonics(i) = harmonics(i - j);
-                break;
-            elseif (i + j <= length(std_freq) && ~isempty(harmonics{i + j}))
-                harmonics(i) = harmonics(i + j);
-                break;
-            end
+        right_idx = i + 1;
 
+        while right_idx <= length(std_freq) && isempty(harmonics{right_idx})
+            right_idx = right_idx + 1;
+        end
+
+        if left_idx > 0 && right_idx <= length(std_freq)
+            weight_left = (std_freq(right_idx) - std_freq(i)) / (std_freq(right_idx) - std_freq(left_idx));
+            weight_right = 1 - weight_left;
+            harmo_len = min(size(harmonics{left_idx}, 1), size(harmonics{right_idx}, 1));
+            harmonics{i} = weight_left * harmonics{left_idx}(1:harmo_len) ...
+                + weight_right * harmonics{right_idx}(1:harmo_len);
+        elseif left_idx > 0
+            harmonics{i} = harmonics{left_idx};
+        elseif right_idx <= length(std_freq)
+            harmonics{i} = harmonics{right_idx};
         end
 
     end
