@@ -1,3 +1,8 @@
+% src/fig_envelope.m
+
+close all;
+clc;
+
 t = linspace(0, 1, 400);
 
 envelope = zeros(size(t));
@@ -12,9 +17,6 @@ result = ...
 
 figure;
 plot(t, result);
-title('Envelope Shape of the Adjusted Linear Function');
-xlabel('Time (s)');
-ylabel('Envelope Value');
 grid on;
 hold on;
 
@@ -24,4 +26,8 @@ C = 1;
 result = t .^ A .* exp(-B * t + C);
 result = result / max(result);
 plot(t, result);
+
+title('Envelope Shape of the Adjusted Linear Function');
+xlabel('Time (s)');
+ylabel('Envelope Value');
 saveas(gcf, '../report/envelope.png');

@@ -10,36 +10,33 @@ clc;
 %
 figure;
 
-subplot(6, 1, 1);
-plot((1:length(guitar)) / Fs, guitar);
+subplot(5, 1, 1);
+plot((0:length(guitar) - 1) / Fs, guitar);
 
-sq = guitar .^ 2;
-subplot(6, 1, 2);
-plot((1:length(sq)) / Fs, sq);
+subplot(5, 1, 2);
+envelope = abs(hilbert(guitar));
+cutoff_freq = 6; % cut-off frequency
+[b, a] = butter(2, cutoff_freq / (Fs / 2), 'low'); % 2nd order low-pass filter
+smooth_envelope = filtfilt(b, a, envelope);
+plot((0:length(smooth_envelope) - 1) / Fs, smooth_envelope);
 
-con = conv(sq, barthannwin(round(Fs / 10)));
-subplot(6, 1, 3);
-plot((1:length(con)) / Fs, con);
+subplot(5, 1, 3);
+dif = smooth_envelope(2:end) - smooth_envelope(1:end - 1);
+plot((0:length(dif) - 1) / Fs, dif);
 
-dif = con(2:end) - con(1:end - 1);
-subplot(6, 1, 4);
-plot((1:length(dif)) / Fs, dif);
-
+subplot(5, 1, 4);
 dif = dif .* (dif > 0);
-subplot(6, 1, 5);
-plot((1:length(dif)) / Fs, dif);
-
-[peaks, locs] = findpeaks(dif, ...
-    'MinPeakHeight', 0.015 * max(abs(dif)), ...
-    'MinPeakDistance', Fs * 0.15);
+plot((0:length(dif) - 1) / Fs, dif);
 hold on;
+
+[peaks, locs] = findpeaks(dif, 'MinPeakHeight', 0.02 * max(abs(dif)), 'MinPeakDistance', Fs * 0.15);
 plot(locs / Fs, peaks, 'ro');
 
-locs = locs - Fs / 20; % adjust the location of the beat
-
-subplot(6, 1, 6);
-plot((1:length(guitar)) / Fs, guitar);
+subplot(5, 1, 5);
+plot((0:length(guitar) - 1) / Fs, guitar);
 hold on;
+
+% locs = locs - Fs / 100;
 
 for i = 1:length(locs)
     line([locs(i), locs(i)] / Fs, ylim, 'Color', 'red', 'LineStyle', '-');
@@ -72,7 +69,7 @@ for i = 1:length(locs)
     for j = 1:length(candidate)
         k = sp_loc / candidate(j);
 
-        if k < 5 && 0.995 < k / round(k) && k / round(k) < 1.005
+        if k < 5 && 0.98 < k / round(k) && k / round(k) < 1.02
             result = candidate(j);
             break;
         end
@@ -84,13 +81,36 @@ for i = 1:length(locs)
     fund_freq = std_freq(idx);
 
     temp_ampls = zeros(1, floor(Fs / 2 / fund_freq));
+    amplss = zeros(1, floor(Fs / 2 / fund_freq));
+    locss = zeros(1, floor(Fs / 2 / fund_freq));
 
     for j = 1:floor(Fs / 2 / fund_freq)
         range = round(result * j * (1 - 0.02)):round(result * j * (1 + 0.02));
+        [amplss(j), locss(j)] = max(spect_gt(range));
+        locss(j) = locss(j) + range(1) - 1;
         temp_ampls(j) = max(spect_gt(range));
+
     end
 
     temp_ampls = temp_ampls / temp_ampls(1);
+
+    if i == 3
+        disp(fund_freq);
+        figure;
+        subplot(2, 1, 1);
+        plot((-length(spect_gt) / 2:length(spect_gt) / 2 - 1) * Fs / length(spect_gt), fftshift(spect_gt));
+        title('Frequency Spectrum');
+        xlabel('Frequency (Hz)');
+        ylabel('Amplitude');
+        subplot(2, 1, 2);
+        plot((0:length(spect_gt) / 2 - 1) * Fs / length(spect_gt), spect_gt(1:end / 2));
+        hold on;
+        plot(locss * Fs / length(spect_gt), amplss, 'o');
+        title('Frequency Spectrum (0-4KHz)');
+        xlabel('Frequency (Hz)');
+        ylabel('Amplitude');
+        saveas(gcf, '../report/fig9_2.png');
+    end
 
     if isempty(harmonics{idx})
         harmonics{idx} = temp_ampls;
@@ -99,26 +119,6 @@ for i = 1:length(locs)
     end
 
 end
-
-% for i = 1:length(std_freq)
-
-%     if isempty(harmonics{i})
-
-%         for j = 1:max(i - 1, length(std_freq) - i)
-
-%             if (i > j && ~isempty(harmonics{i - j}))
-%                 harmonics(i) = harmonics(i - j);
-%                 break;
-%             elseif (i + j <= length(std_freq) && ~isempty(harmonics{i + j}))
-%                 harmonics(i) = harmonics(i + j);
-%                 break;
-%             end
-
-%         end
-
-%     end
-
-% end
 
 for i = 1:length(std_freq)
 
@@ -135,13 +135,18 @@ for i = 1:length(std_freq)
             right_idx = right_idx + 1;
         end
 
-        if left_idx > 0 && right_idx <= length(std_freq)
+        if 0 < left_idx && right_idx <= length(std_freq)
+
+            if size(harmonics{left_idx}, 2) > size(harmonics{right_idx}, 2)
+                harmonics{right_idx} = [harmonics{right_idx}, zeros(1, size(harmonics{left_idx}, 2) - size(harmonics{right_idx}, 2))];
+            else
+                harmonics{left_idx} = [harmonics{left_idx}, zeros(1, size(harmonics{right_idx}, 2) - size(harmonics{left_idx}, 2))];
+            end
+
             weight_left = (std_freq(right_idx) - std_freq(i)) / (std_freq(right_idx) - std_freq(left_idx));
             weight_right = 1 - weight_left;
-            harmo_len = min(size(harmonics{left_idx}, 1), size(harmonics{right_idx}, 1));
-            harmonics{i} = weight_left * harmonics{left_idx}(1:harmo_len) ...
-                + weight_right * harmonics{right_idx}(1:harmo_len);
-        elseif left_idx > 0
+            harmonics{i} = weight_left * harmonics{left_idx} + weight_right * harmonics{right_idx};
+        elseif 0 < left_idx
             harmonics{i} = harmonics{left_idx};
         elseif right_idx <= length(std_freq)
             harmonics{i} = harmonics{right_idx};

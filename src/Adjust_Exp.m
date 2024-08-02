@@ -2,7 +2,7 @@
 
 % adjust the envelope by expotential function
 function result = Adjust_Exp(t)
-    A = 1;
+    A = 1.5;
     B = 8;
     C = 1;
     result = t .^ A .* exp(-B * t + C);

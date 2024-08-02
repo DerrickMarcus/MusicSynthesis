@@ -20,10 +20,9 @@ wave_proc = repmat(wave_proc, [10, 1]);
 wave_proc = resample(wave_proc, 1, 10);
 
 wave_proc = repmat(wave_proc, [100, 1]);
-spect = fft(wave_proc);
-plot(abs(spect));
+spect = abs(fft(wave_proc));
 
-[peaks, ~] = findpeaks(abs(spect), 'MinPeakHeight', 0.01 * max(abs(spect)));
+[peaks, ~] = findpeaks(spect, 'MinPeakHeight', 0.01 * max(spect));
 
 harmonics = peaks(1:end / 2);
 harmonics = harmonics / harmonics(1);

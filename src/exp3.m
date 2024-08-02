@@ -48,7 +48,6 @@ end
 
 % plot((0:length(melody) - 1) / Fs, melody);
 % sound(melody, Fs);
-% audiowrite('../results/exp3_1.wav', melody, Fs);
 
 % raise an octave
 sound(melody, Fs * 2);

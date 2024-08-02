@@ -54,7 +54,7 @@ footer: ${pageNo} of ${totalPages}
 
 为了使不同音调之间有“迭接”，增强乐音的连续性，需要使用包络修正乐音的波形。
 
-分别使用实验指导书中图 1.5 的分段折线包络和形式为 $t^A\exp(-Bt+C)$ 的指数衰减包络：
+分别使用实验指导书中图 1.5 的分段折线包络和形式为 $t^A\exp(-Bt+C)$ 的指数衰减包络，生成包络形状的源文件见 `fig_envelope.m` ，生成图像如 `envelope.png` ：
 
 ![envelope](.\envelope.png)
 
@@ -86,7 +86,11 @@ footer: ${pageNo} of ${totalPages}
 
 （4）试着在 (2) 的音乐中增加一些谐波分量，听一听音乐是否更有“厚度”了？注意谐波分量的能量要小，否则掩盖住基音反而听不清音调了。（如果选择基波幅度为 1 ，二次谐波幅度 0*.*2 ，三次谐波幅度 0*.*3 ，听起来像不像象风琴？）
 
-使用谐波分量矩阵 `harmonics = [1; 0.2; 0.3]` 。高次谐波分量使得音色更加多样，加入谐波后确实更有“厚重感”，有些像风琴。
+高次谐波分量改变了原本单一频率的正弦波形，可以使得音色更加多样。加入一些高次谐波后，波形改变，基本波形如下：
+
+![harmonic](.\harmonic.png)
+
+在本例中，按照 `harmonics = [1; 0.2; 0.3]` 加入谐波后，确实更有“厚重感”，有些像风琴。
 
 乐音波形如下：
 
@@ -149,7 +153,7 @@ waveform_1 = wave2proc;
 len_1 = round(length(waveform_1) / 10);
 spectrum_1 = abs(fft(waveform_1(1:len_1)));
 subplot(3, 1, 1);
-plot((0:len_1 - 1) * Fs / len_1, spectrum_1);
+plot((-len_1 / 2:len_1 / 2 - 1) * Fs / len_1, fftshift(spectrum_1));
 ```
 
 方法二：对完整的波形（十个周期）做傅里叶变换。此时效果稍好，频谱呈现三角脉冲的形状。
@@ -160,10 +164,10 @@ waveform_2 = wave2proc;
 len_2 = round(length(waveform_2));
 spectrum_2 = abs(fft(waveform_2));
 subplot(3, 1, 2);
-plot((0:len_2 - 1) * Fs / len_2, spectrum_2);
+plot((-len_2 / 2:len_2 / 2 - 1) * Fs / len_2, fftshift(spectrum_2));
 ```
 
-方法三：对原波形使用 `repmat` 函数延拓 20 倍，然后做傅里叶变换。根据图像可知，频谱更加接近冲激函数，这是因为是时域波形周期性很强。
+方法三：对原波形使用 `repmat` 函数延拓 20 倍，然后做傅里叶变换。根据图像可知，频谱更加接近冲激函数，这是因为是时域波形及重复很多次后，周期性很强，在频域对应于用抽样。当重复次数足够多时，接近于理想的冲激抽样，频谱的分立频率就越明显。
 
 ```matlab
 % method 3
@@ -171,14 +175,14 @@ waveform_3 = repmat(wave2proc, [20, 1]);
 len_3 = length(waveform_3);
 spectrum_3 = abs(fft(waveform_3));
 subplot(3, 1, 3);
-plot((0:len_3 - 1) * Fs / len_3, spectrum_3);
+plot((-len_3 / 2:len_3 / 2 - 1) * Fs / len_3, fftshift(spectrum_3));
 ```
 
-上述三种方法得到的频谱见下图：
+上述三种方法得到的频谱见下图（以0频点为中心频点）：
 
 ![fig8](.\fig8.png)
 
-对于上面的第三个频谱，我们通过 `findpeaks` 函数找到频谱中出现的脉冲，也就是波形中包含的频率分量。取出最小的那个即为基波频率，剩下的是高次谐波。由于采样率固定为 8KHz，因此最高频率分量不超过 4KHz。
+对于上面的第三个频谱，我们通过 `findpeaks` 函数找到频谱中出现的脉冲，也就是波形中包含的较强的频率分量。取出最小的那个即为基波频率，剩下的是高次谐波。由于采样率固定为 8KHz，因此最高频率分量不超过 4KHz。
 
 ```matlab
 % find base waves and harmonic waves
@@ -216,29 +220,35 @@ Harmoic 10, Amplitude: 0.064
 
 （9） 再次载入 fmt.wav ，现在要求你写一段程序，自动分析出这段乐曲的音调和节拍！如果你觉得太难就允许手工标定出每个音调的起止时间，再不行你就把每个音调的数据都单独保存成一个文件，然后让 MATLAB 对这些文件进行批处理。注意：不允许逐一地手工分析音调。编辑音乐文件，推荐使用“CoolEdit” 编辑软件。
 
-首先划分节拍：先对信号取平方，得到能量，然后与窗函数 `barthannwin` 做卷积，得到上述波形的包络。包络中冲激发生处是每个乐音的起始位置，由于发生冲激后衰减部分较“平缓”，不利于直接检测峰值，因此对该波形做差分，然乎取正值，此时在图像中清晰可见各处峰值。再使用 `findpeaks` 函数，设定峰值的最小幅度、峰值之间的最小间隔。
+首先划分节拍：
+
+1. 获取时域波形的包络：先取原信号的希尔伯特变换，获得解析信号的幅值，记为 `envelope` ，然后设置一个二阶巴特沃斯低通滤波器 `butter()` ，截止频率为 6Hz，在经过 `filtfilt()` 进行双向滤波，是包络更加平滑，得到平滑的包络 `smooth_envelope` 。
+2. 对包络做差分。因为每一个音调在冲激达到最高处时，前后变化剧烈。冲激后衰减部分较“平缓”，不利于直接检测峰值，因此对该波形做差分，差分后的信号为 `dif` 。
+3. 对差分信号取正值，然后峰值处对应原信号的冲激最大处，使用 `findpeaks` 函数找到这些峰值的位置，保存在数组 `locs` 中。
+4. 由于峰值处该音调实际已经开始了一段时间（冲激到最大值），并非刚开始的时间，因此根据实际情况对数组 `locs` 进行修正，例如 `locs = locs - Fs / 100` （可选，经过测试发现差别不大）。
+
+这部分处理过程代码如下：
 
 ```matlab
-sq = guitar .^ 2;
+[guitar, Fs] = audioread('./resources/fmt.wav'); % Fs=8000
 
-con = conv(sq, barthannwin(round(Fs / 10)));
+envelope = abs(hilbert(guitar));
+cutoff_freq = 6; % cut-off frequency
+[b, a] = butter(2, cutoff_freq / (Fs / 2), 'low'); % 2nd order low-pass filter
+smooth_envelope = filtfilt(b, a, envelope);
 
-dif = con(2:end) - con(1:end - 1);
+dif = smooth_envelope(2:end) - smooth_envelope(1:end - 1);
 
 dif = dif .* (dif > 0);
 
-[peaks, locs] = findpeaks(dif, ...
-    'MinPeakHeight', 0.015 * max(abs(dif)), ...
-    'MinPeakDistance', Fs * 0.15);
-
-locs = locs - Fs / 20; % adjust the location of the beat
+[peaks, locs] = findpeaks(dif, 'MinPeakHeight', 0.02 * max(abs(dif)), 'MinPeakDistance', Fs * 0.15);
 ```
 
-最后各个节拍开始的位置保存在数组 `locs` 中。由于 `findpeaks` 函数是以峰值为寻找标准的，因此在该位置处该音调实际已经开始了一段时间（冲激到最大值），并非刚开始的时间，因此我们对数组 `locs` 进行修正：`locs = locs - Fs / 20;` 。最终经过划分的波形如下：
+处理过程中各信号的波形如下：
 
 ![fig9_1](.\fig9_1.png)
 
-划分好节拍后，对每一个节拍分析音调：采用与（8）同样的策略，先将片段周期性重复足够多次，做傅里叶变换得到频谱。由于该片段中频谱连续性太强，使用 `findpeaks` 函数寻找频率点误差太大，我们需要采取其他方法。为了找到基波频率，我们先在频谱中找到幅度最大的频点，以此最大值的 1/4 为阈值，向下筛选基波频率：当最大幅度频段接近该频率的整数倍时（相对误差在 0.5% 之间），我们将此频率定为基波频率。
+划分好节拍后，对每一个节拍分析音调：采用与（8）同样的策略，先将片段周期性重复足够多次，做傅里叶变换得到频谱。由于该片段中频谱连续性太强，使用 `findpeaks` 函数寻找频率点误差太大，我们需要采取其他方法。为了找到基波频率，我们先在频谱中找到幅度最大的频点，以此最大值的 1/4 为阈值，向下筛选基波频率：当最大幅度频段接近该频率的整数倍时（相对误差在 2% 之间），我们将此频率定为基波频率。
 
 ```matlab
     wave_gt = repmat(wave_gt, [100, 1]);
@@ -282,7 +292,7 @@ locs = locs - Fs / 20; % adjust the location of the beat
     end
 ```
 
-现在我们不一定得到了全部音调的谐波信息，需要使用邻近的音调的谐波信息进行“插值”，填补空白的谐波信息，最后我们才能得到完整的谐波矩阵。
+现在我们不一定得到了全部音调的谐波信息，需要使用邻近的音调的谐波信息进行“插值”，填补空白的谐波信息，我使用的方法是线性插值，需要先将邻近的两个不为空的数组长度向较长的一个对齐，然后加权平均。最后我们才能得到完整的谐波矩阵。
 
 ```matlab
 for i = 1:length(std_freq)
@@ -300,13 +310,18 @@ for i = 1:length(std_freq)
             right_idx = right_idx + 1;
         end
 
-        if left_idx > 0 && right_idx <= length(std_freq)
+        if 0 < left_idx && right_idx <= length(std_freq)
+
+            if size(harmonics{left_idx}, 2) > size(harmonics{right_idx}, 2)
+                harmonics{right_idx} = [harmonics{right_idx}, zeros(1, size(harmonics{left_idx}, 2) - size(harmonics{right_idx}, 2))];
+            else
+                harmonics{left_idx} = [harmonics{left_idx}, zeros(1, size(harmonics{right_idx}, 2) - size(harmonics{left_idx}, 2))];
+            end
+
             weight_left = (std_freq(right_idx) - std_freq(i)) / (std_freq(right_idx) - std_freq(left_idx));
             weight_right = 1 - weight_left;
-            harmo_len = min(size(harmonics{left_idx}, 1), size(harmonics{right_idx}, 1));
-            harmonics{i} = weight_left * harmonics{left_idx}(1:harmo_len) ...
-                + weight_right * harmonics{right_idx}(1:harmo_len);
-        elseif left_idx > 0
+            harmonics{i} = weight_left * harmonics{left_idx} + weight_right * harmonics{right_idx};
+        elseif 0 < left_idx
             harmonics{i} = harmonics{left_idx};
         elseif right_idx <= length(std_freq)
             harmonics{i} = harmonics{right_idx};
@@ -317,7 +332,7 @@ for i = 1:length(std_freq)
 end
 ```
 
-下图是对第一个节拍的音调做频率分析的结果（基波频率约为 220Hz，A调）：
+下图是对第 3 个节拍的音调做频率分析的结果（基波频率约为 246.94Hz，B调），可见基波频率和高次谐波的抓取较为准确：
 
 ![fig9_2](.\fig9_2.png)
 
@@ -385,19 +400,86 @@ end
 
 ![fig11](.\fig11.png)
 
-可以发现第 7 个节拍的谐波分量显著高于其他音调。
+可以发现第 7 个节拍的谐波分量幅度显著高于其他音调,而且听起来比（10）中的确实更像吉他音一些。
 
 
 
 ## 感想与收获
 
+本次实验让我学到了很多知识。MATLAB 具有强大的矩阵运算和数值分析能力，非常适合做语音、信号处理等任务。MATLAB 语法凝练、生成和利用矩阵的方式多种多样，如 `cell` 元胞数组、`linspace()` 等距数组以及最简单的 `(start:end)` ，也本身具备各种功能强大的函数，如快速傅里叶变换 `fft` 和峰值函数 `findpeaks` 等，有时可以极大简化我们的分析和求解过程。
 
+我在刚开始上手编写程序时，稍感困难，主要是对于乐音中音调、节拍分析的实质不够清楚、对于用矩阵语言描述不同变量之间的运算不够熟练，后来在搜集资料、教程以及大语言模型工具的帮助下，我逐渐掌握了分析的一整套流程，同时也与春季学期学习的理论知识产生了关联，强化了对傅里叶变换进行频率分析的理解和掌握。
+
+我需要改进的方面有：在进行包络修正的时候，我尝试了许多参数，期间出现过两种问题，一是调整后的波形毛刺比较明显，二是不同音调之间的迭接似乎还不够顺滑，我发现很难同时解决这两个问题，因此最终选择了较为折中的方法。我认为可以选取更加复杂的包络表达式去拟合实际乐音的强弱变化，但带来的代价是调参的工作量。另外在分析节拍和音调的过程中，各种寻找条件和临界处的阈值，是对于这一段音乐而言的，可以不断根据反馈结果来调整参数，因此可能对于其他音乐并非适用。我们可能需要在分析方法的普适性上做出改进。
 
 
 
 ## 文件结构
 
+doc：实验指导书 `Guide.pdf` ；
 
+report：实验报告，以及所使用图片；
+
+results：代码运行结果；
+
+src：MATLAB源代码。
+
+
+
+```
+.
+|-- README.md
+|-- doc
+|   `-- Guide.pdf
+|-- report
+|   |-- envelope.png
+|   |-- fig1.png
+|   |-- fig10.png
+|   |-- fig11.png
+|   |-- fig2_1.png
+|   |-- fig2_2.png
+|   |-- fig4.png
+|   |-- fig5.png
+|   |-- fig6.png
+|   |-- fig7.png
+|   |-- fig8.png
+|   |-- fig9_1.png
+|   |-- fig9_2.png
+|   |-- harmonic.png
+|   |-- report.md
+|   `-- report.pdf
+|-- results
+|   |-- exp1.wav
+|   |-- exp10.wav
+|   |-- exp11.wav
+|   |-- exp2_1.wav
+|   |-- exp2_2.wav
+|   |-- exp3_1.wav
+|   |-- exp3_2.wav
+|   |-- exp3_3.wav
+|   |-- exp4.wav
+|   `-- exp5.wav
+`-- src
+    |-- Adjust_Exp.m
+    |-- Adjust_Linear.m
+    |-- exp1.m
+    |-- exp10.m
+    |-- exp11.m
+    |-- exp2.m
+    |-- exp3.m
+    |-- exp4.m
+    |-- exp5.m
+    |-- exp6.m
+    |-- exp7.m
+    |-- exp8.m
+    |-- exp9.m
+    |-- fig_envelope.m
+    |-- fig_harmonic.m
+    |-- harmonics_exp9.mat
+    `-- resources
+        |-- Guitar.MAT
+        `-- fmt.wav
+```
 
 
 
