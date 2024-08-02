@@ -63,54 +63,76 @@ for i = 1:length(locs)
     spect_gt = abs(fft(wave_gt));
 
     [sp_peak, sp_loc] = max(spect_gt);
-    candidate = (1:sp_loc);
-    candidate = candidate(spect_gt(1:sp_loc) > sp_peak / 4);
 
-    for j = 1:length(candidate)
-        k = sp_loc / candidate(j);
-
-        if k < 5 && 0.98 < k / round(k) && k / round(k) < 1.02
-            result = candidate(j);
-            break;
-        end
-
-    end
-
-    fund_freq = (result - 1) * Fs / length(spect_gt);
+    % start..............................................
+    %
+    fund_freq = sp_loc * Fs / length(spect_gt);
     [~, idx] = min(abs(std_freq - fund_freq));
     fund_freq = std_freq(idx);
+    disp(fund_freq);
 
     temp_ampls = zeros(1, floor(Fs / 2 / fund_freq));
-    amplss = zeros(1, floor(Fs / 2 / fund_freq));
-    locss = zeros(1, floor(Fs / 2 / fund_freq));
 
     for j = 1:floor(Fs / 2 / fund_freq)
-        range = round(result * j * (1 - 0.02)):round(result * j * (1 + 0.02));
-        [amplss(j), locss(j)] = max(spect_gt(range));
-        locss(j) = locss(j) + range(1) - 1;
-        temp_ampls(j) = max(spect_gt(range));
-
+        middle = j * fund_freq / Fs * length(spect_gt);
+        temp_ampls(j) = max(spect_gt(round(middle * (1 - 0.05)):round(middle * (1 + 0.05))));
     end
 
     temp_ampls = temp_ampls / temp_ampls(1);
+    disp(temp_ampls);
+    %
+    %  end................................................
 
-    if i == 3
-        disp(fund_freq);
-        figure;
-        subplot(2, 1, 1);
-        plot((-length(spect_gt) / 2:length(spect_gt) / 2 - 1) * Fs / length(spect_gt), fftshift(spect_gt));
-        title('Frequency Spectrum');
-        xlabel('Frequency (Hz)');
-        ylabel('Amplitude');
-        subplot(2, 1, 2);
-        plot((0:length(spect_gt) / 2 - 1) * Fs / length(spect_gt), spect_gt(1:end / 2));
-        hold on;
-        plot(locss * Fs / length(spect_gt), amplss, 'o');
-        title('Frequency Spectrum (0-4KHz)');
-        xlabel('Frequency (Hz)');
-        ylabel('Amplitude');
-        saveas(gcf, '../report/fig9_2.png');
-    end
+    % candidate = (1:sp_loc);
+    % candidate = candidate(spect_gt(1:sp_loc) > sp_peak / 4);
+
+    % for j = 1:length(candidate)
+    %     k = sp_loc / candidate(j);
+
+    %     if k < 5 && 0.98 < k / round(k) && k / round(k) < 1.02
+    %         result = candidate(j);
+    %         break;
+    %     end
+
+    % end
+
+    % fund_freq = (result - 1) * Fs / length(spect_gt);
+    % [~, idx] = min(abs(std_freq - fund_freq));
+    % fund_freq = std_freq(idx);
+    % disp(fund_freq);
+
+    % temp_ampls = zeros(1, floor(Fs / 2 / fund_freq));
+    % amplss = zeros(1, floor(Fs / 2 / fund_freq));
+    % locss = zeros(1, floor(Fs / 2 / fund_freq));
+
+    % for j = 1:floor(Fs / 2 / fund_freq)
+    %     range = round(result * j * (1 - 0.02)):round(result * j * (1 + 0.02));
+    %     [amplss(j), locss(j)] = max(spect_gt(range));
+    %     locss(j) = locss(j) + range(1) - 1;
+    %     temp_ampls(j) = max(spect_gt(range));
+
+    % end
+
+    % temp_ampls = temp_ampls / temp_ampls(1);
+    % disp(temp_ampls);
+
+    % if i == 3
+    %     % disp(fund_freq);
+    %     figure;
+    %     subplot(2, 1, 1);
+    %     plot((-length(spect_gt) / 2:length(spect_gt) / 2 - 1) * Fs / length(spect_gt), fftshift(spect_gt));
+    %     title('Frequency Spectrum');
+    %     xlabel('Frequency (Hz)');
+    %     ylabel('Amplitude');
+    %     subplot(2, 1, 2);
+    %     plot((0:length(spect_gt) / 2 - 1) * Fs / length(spect_gt), spect_gt(1:end / 2));
+    %     hold on;
+    %     plot(locss * Fs / length(spect_gt), amplss, 'o');
+    %     title('Frequency Spectrum (0-4KHz)');
+    %     xlabel('Frequency (Hz)');
+    %     ylabel('Amplitude');
+    %     saveas(gcf, '../report/fig9_2.png');
+    % end
 
     if isempty(harmonics{idx})
         harmonics{idx} = temp_ampls;

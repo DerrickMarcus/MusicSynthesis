@@ -248,7 +248,9 @@ dif = dif .* (dif > 0);
 
 ![fig9_1](.\fig9_1.png)
 
-划分好节拍后，对每一个节拍分析音调：采用与（8）同样的策略，先将片段周期性重复足够多次，做傅里叶变换得到频谱。由于该片段中频谱连续性太强，使用 `findpeaks` 函数寻找频率点误差太大，我们需要采取其他方法。为了找到基波频率，我们先在频谱中找到幅度最大的频点，以此最大值的 1/4 为阈值，向下筛选基波频率：当最大幅度频段接近该频率的整数倍时（相对误差在 2% 之间），我们将此频率定为基波频率。
+划分好节拍后，对每一个节拍分析音调：采用与（8）同样的策略，先将片段周期性重复足够多次，做傅里叶变换得到频谱。由于该片段中频谱连续性太强，使用 `findpeaks` 函数寻找频率点误差太大，我们需要采取其他方法。为了找到基波频率，我们有两种方法：一是我们先在频谱中找到幅度最大的频点，以此最大值的 1/4 为阈值，向下筛选基波频率：当最大幅度频段接近该频率的整数倍时（相对误差在 2% 之间），将此频率定为基波频率。经过实践后发现此方法能够找到的基波频率稍少，并且频率偏低，全部在 400Hz 以下，导致后面《东方红》歌曲使用的较高的频率没有直接可用的信息，只能用“邻近”的音调的信息，因此他们所使用的谐波幅度都是一样的，不利于更加模拟吉他音的银色。因此最后还是使用第二种较为直接的方法：将频谱中幅度最大的频点定为基波频率，然后向上寻找高次谐波。
+
+方法一：
 
 ```matlab
     wave_gt = repmat(wave_gt, [100, 1]);
@@ -257,18 +259,27 @@ dif = dif .* (dif > 0);
     [sp_peak, sp_loc] = max(spect_gt);
     candidate = (1:sp_loc);
     candidate = candidate(spect_gt(1:sp_loc) > sp_peak / 4);
-
     for j = 1:length(candidate)
         k = sp_loc / candidate(j);
-
         if k < 5 && 0.995 < k / round(k) && k / round(k) < 1.005
             result = candidate(j);
             break;
         end
 
     end
-
     fund_freq = (result - 1) * Fs / length(spect_gt);
+    [~, idx] = min(abs(std_freq - fund_freq));
+    fund_freq = std_freq(idx);
+```
+
+方法二：
+
+```matlab
+    wave_gt = repmat(wave_gt, [100, 1]);
+    spect_gt = abs(fft(wave_gt));
+    [sp_peak, sp_loc] = max(spect_gt);
+    
+    fund_freq = sp_loc * Fs / length(spect_gt);
     [~, idx] = min(abs(std_freq - fund_freq));
     fund_freq = std_freq(idx);
 ```
